@@ -19,11 +19,13 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 
+# Socket connection info for Eyetribe
 TCP_IP = '127.0.0.1'
 TCP_PORT = 6555 #EyeTribe port
 BUFFER_SIZE = 1024
 MESSAGE = "Hello, World!"
 
+# Globals
 START_TRACKING_FLAG = False
 EYETRACK_SESSION_DATA = []
 START_TIME = 0
@@ -31,6 +33,9 @@ RUN_PLAYBACK_FLAG = False
 
 
 #-------------------------------- Get FrontEnd info -------------------------------
+#-- Receives the coordinates of the moving object from the front end
+#-- Also recieves flag to start recording the eyetracking data
+#-------------------------------------------------------------------------------------
 @app.route('/_get_eyetrack_data', methods = ['GET', 'POST'])
 def _get_eyetrack_data():
   global START_TRACKING_FLAG
@@ -57,6 +62,8 @@ def _get_eyetrack_data():
   return str(request.form)
 
 #-------------------------------- Get the eyetrack data from one session --------------------------------
+#-- Organizes the eyetracking data from a single session into a JSON
+#--------------------------------------------------------------------------------------------------------
 def get_eyetrack_session_data():
   global START_TRACKING_FLAG
   global EYETRACK_SESSION_DATA
@@ -85,7 +92,9 @@ def get_eyetrack_session_data():
   #start saving that stream of coordinates
   return EYETRACK_SESSION_DATA
 
-#-------------------------------- Save relevant data to db --------------------------------
+#-------------------------------- Save data to db --------------------------------------------------------
+#-- Stores the session in the database, along with session data for the moving object and eyetracking
+#----------------------------------------------------------------------------------------------------------
 def save_session(start_time, end_time, eyetrack_session_data, object_coordinates):
   json_eye_data_list = []
   try:
@@ -102,10 +111,15 @@ def save_session(start_time, end_time, eyetrack_session_data, object_coordinates
   return
 
 #-------------------------------- Basic background thread to display live eyetribe coordinates -------------------------------
+#-- This is the master background thread used in flask_socketio
+#-- When the socket connects with test_connect(), this thread is called and runs continuously in the background
+#-- Depending on what button is pressed on the interface, this thread will either playback the last session or display the live tracking coordinates onscreen
+#--------------------------------------------------------------------------------------------------------------------------------
 def background_thread():
   """Send server generated events to clients in background thread, includes EyeTribe data getting."""
   global RUN_PLAYBACK_FLAG
 
+  # PLAYBACK BEHAVIOR
   if RUN_PLAYBACK_FLAG == True:
     f = open('output.txt', 'w')
     f.write('\n thread start time:' + str(int(round(time.time() * 1000))))
@@ -116,10 +130,6 @@ def background_thread():
     eyetribe_data = eyetribe_data[1:] # trim first gaze coordinate, it's always way earlier than rest
     moving_object_data = data['moving_object_data']
 
-    # dicts in memory to map timestamps to coordinates
-    gaze_coords = {}
-    moving_object_coords = {}
-
     # initial and final timestamps for both gaze and object
     gaze_time_0 = eyetribe_data[0][5]
     obj_time_0 = moving_object_data[0][4]
@@ -129,7 +139,10 @@ def background_thread():
     end_time = max(gaze_time_f, obj_time_f) # want our lists to have length equal to longest session
     total_time = end_time - initial_time
 
-    ## ~~~~ DICTIONARY IN MEMORY ~~~~ #
+    ## ~~~~ DICTIONARY IN MEMORY ~~~~ # not being used right now
+    # dicts in memory to map timestamps to coordinates
+    # gaze_coords = {}
+    # moving_object_coords = {}
     # # fill up coordinate dictionaries
     # for e in eyetribe_data:
     #   x = e[2] #x val for single eye coord
@@ -191,15 +204,14 @@ def background_thread():
                      namespace='/test')       
       count += 1
 
-      # f.write('\n' + str(count) + 'time in loop:' + str(int(round(time.time() * 1000)) -  playback_now))
-
     # data = {'playback_times': playback_times, 'eyetrack_data': eyetribe_data, 'moving_object_data': moving_object_data, 'gaze_list': gaze_list, 'moving_object_list': moving_object_list}
     # pickle.dump(data, open('playback', 'w'))
     # print("final count", count)
     f.write('\n thread end time:' + str(int(round(time.time() * 1000))))
     f.close()
-    
 
+
+  # LIVE TRACKING BEHAVIOR
   else:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
@@ -224,7 +236,9 @@ def background_thread():
                     namespace='/test')
 
 
-#-------------------------------- Get playback flag to determine which background thread to use -------------------------------
+#------------------------- Get playback flag ---------------------------------------------------------------------
+#-- Recieves a flag from the front end to determine which background thread to use: playback or live tracking
+#-----------------------------------------------------------------------------------------------------------------
 @app.route('/_get_playback_flag', methods = ['GET', 'POST'])
 def _get_playback_flag():
   global RUN_PLAYBACK_FLAG

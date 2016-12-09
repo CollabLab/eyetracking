@@ -4,12 +4,15 @@ from dateutil.parser import parse
 import datetime
 import setup_db
 
-
+##------------------------ Converts unix time to milliseconds ----------------------------------
 epoch = datetime.datetime.utcfromtimestamp(0)
 def unix_time_millis(dt):
     return (dt - epoch).total_seconds() * 1000.0
 
-#------------------------------Inserts the session data--------------------------------
+#------------------------------Inserts the session data------------------------------------------------
+#-- Adds the session to the sessions table
+#-- Also adds eyecoords to the eyetracking table, and moving object data to the moving_object table
+#-------------------------------------------------------------------------------------------------------
 def insert_session_data(session_data, eyetrack_data, object_data):
 	try:
 		connection_str = "dbname=%s user=%s host='localhost' password='dbpass'" %(setup_db.dbname, setup_db.user)
@@ -79,6 +82,8 @@ def insert_session_data(session_data, eyetrack_data, object_data):
 	return
 
 #------------------------------Fetches most recent session data--------------------------------
+#-- Pretty straight foward :-)
+#----------------------------------------------------------------------------------------------
 def get_last_session():
 	eyetribe_data = []
 	moving_object_data = []
