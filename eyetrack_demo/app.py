@@ -97,7 +97,7 @@ def save_session(start_time, end_time, eyetrack_session_data, object_coordinates
     models.insert_session_data(session_data, json_eye_data_list, object_coordinates)
 
   except ValueError as e:
-    print "\t ***** ERROR: *****\n", e.message
+    print("\t ***** ERROR: *****\n", e.message)
   
   return
 
@@ -110,7 +110,7 @@ def background_thread():
     f = open('output.txt', 'w')
     f.write('\n thread start time:' + str(int(round(time.time() * 1000))))
 
-    print 'inside playback thread'
+    print('inside playback thread')
     data = models.get_last_session()
     eyetribe_data = data['eyetribe_data']
     eyetribe_data = eyetribe_data[1:] # trim first gaze coordinate, it's always way earlier than rest
@@ -173,8 +173,8 @@ def background_thread():
         break
       eyetribe_coord = gaze_list[playback_now]
       object_coord = moving_object_list[playback_now]
-      # print eyetribe_coord
-      # print object_coord
+      # print (eyetribe_coord)
+      # print (object_coord)
 
       if eyetribe_coord is None or object_coord is None:
         if eyetribe_coord is not None:
@@ -195,13 +195,12 @@ def background_thread():
 
     # data = {'playback_times': playback_times, 'eyetrack_data': eyetribe_data, 'moving_object_data': moving_object_data, 'gaze_list': gaze_list, 'moving_object_list': moving_object_list}
     # pickle.dump(data, open('playback', 'w'))
-    # print "final count", count
+    # print("final count", count)
     f.write('\n thread end time:' + str(int(round(time.time() * 1000))))
     f.close()
     
 
   else:
-    print 'shouldnt be in here'
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
     s.send(MESSAGE)

@@ -81,10 +81,10 @@ def get_last_session():
 	moving_object_data = []
 	try:
 	  conn = psycopg2.connect("dbname='eyetrack_session' user='olivergoodman' host='localhost' password='dbpass'")
-	  print "Connected to db"
+	  print("Connected to db")
 	  curr = conn.cursor()
 	except:
-	  print "I am unable to connect to the database"
+	  print("I am unable to connect to the database")
 	  return
 
 	try:	
@@ -98,7 +98,7 @@ def get_last_session():
 
 	except psycopg2.DatabaseError as error:
 	 	conn.rollback()
-	 	print error	 	
+	 	print(error)
 
 	finally:
 		if conn is not None:
