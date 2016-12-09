@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # Script to setup a local Postgres database for the Eye Tracking Debug Platform
 from __future__ import print_function
-
 from psycopg2 import connect
 import sys
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -12,20 +11,19 @@ dbname = 'eyetracking_session_test'
 
 def main():
 	try:
-	# establish connection
-	con = None
-	con = connect(dbname='postgres', user=user, host='localhost', password='dbpass')
+		# establish connection
+		con = None
+		con = connect(dbname='postgres', user=user, host='localhost', password='dbpass')	
 
-	# create new db
-	con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-	cur = con.cursor()
-	cur.execute('CREATE DATABASE ' + dbname)
-	cur.close()
-	con.close()
+		# create new db
+		con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+		cur = con.cursor()
+		cur.execute('CREATE DATABASE ' + dbname)
+		cur.close()
+		con.close()
 	except Exception as e:
 		print("Cannot connect to postgres server")
-		print(str(e))
-
+		print(str(e))	
 
 	try:
 		# create new tables
@@ -41,5 +39,5 @@ def main():
 		print('Cannot create new tables, they already exist')
 		print(str(e))
 
-if __init__ == "__main__":
+if __name__ == "__main__":
 	main()

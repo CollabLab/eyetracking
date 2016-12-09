@@ -2,6 +2,8 @@ import psycopg2
 import time
 from dateutil.parser import parse
 import datetime
+import setup_db
+
 
 epoch = datetime.datetime.utcfromtimestamp(0)
 def unix_time_millis(dt):
@@ -10,9 +12,10 @@ def unix_time_millis(dt):
 #------------------------------Inserts the session data--------------------------------
 def insert_session_data(session_data, eyetrack_data, object_data):
 	try:
-	  conn = psycopg2.connect("dbname='eyetrack_session' user='olivergoodman' host='localhost' password='dbpass'")
-	  print "Connected to db"
-	  curr = conn.cursor()
+		connection_str = "dbname=%s user=%s host='localhost' password='dbpass'" %(setup_db.dbname, setup_db.user)
+		conn = psycopg2.connect(connection_str)
+		print "Connected to db"
+		curr = conn.cursor()
 	except:
 	  print "I am unable to connect to the database"
 	  return
@@ -80,9 +83,10 @@ def get_last_session():
 	eyetribe_data = []
 	moving_object_data = []
 	try:
-	  conn = psycopg2.connect("dbname='eyetrack_session' user='olivergoodman' host='localhost' password='dbpass'")
-	  print("Connected to db")
-	  curr = conn.cursor()
+		connection_str = "dbname=%s user=%s host='localhost' password='dbpass'" %(setup_db.dbname, setup_db.user)	
+		conn = psycopg2.connect(connection_str)
+		print("Connected to db")
+		curr = conn.cursor()
 	except:
 	  print("I am unable to connect to the database")
 	  return
