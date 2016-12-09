@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Script to setup a local Postgres database for the Eye Tracking Debug Platform
+from __future__ import print_function
 
 from psycopg2 import connect
 import sys
@@ -9,7 +10,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 user = 'change_to_your_Postgres_username'
 dbname = 'eyetracking_session_test'
 
-try:
+def main():
+	try:
 	# establish connection
 	con = None
 	con = connect(dbname='postgres', user=user, host='localhost', password='dbpass')
@@ -20,21 +22,24 @@ try:
 	cur.execute('CREATE DATABASE ' + dbname)
 	cur.close()
 	con.close()
-except Exception as e:
-	print "Cannot connect to postgres server"
-	print str(e)
+	except Exception as e:
+		print("Cannot connect to postgres server")
+		print(str(e))
 
 
-try:
-	# create new tables
-	con = connect(dbname=dbname, user=user, host='localhost', password='dbpass')
-	cur = con.cursor()
-	cur.execute("CREATE TABLE session (id serial PRIMARY KEY, start_time varchar, end_time varchar);")
-	cur.execute("CREATE TABLE eyetrack (id serial PRIMARY KEY, session_id integer, x integer, y integer, time integer, timestamp double precision);")
-	cur.execute("CREATE TABLE moving_object (id serial PRIMARY KEY, session_id integer, x integer, y integer, timestamp double precision);")
-	cur.close()
-	con.commit()
-	con.close()
-except Exception as e:
-	print 'Cannot create new tables, they already exist'
-	print str(e)
+	try:
+		# create new tables
+		con = connect(dbname=dbname, user=user, host='localhost', password='dbpass')
+		cur = con.cursor()
+		cur.execute("CREATE TABLE session (id serial PRIMARY KEY, start_time varchar, end_time varchar);")
+		cur.execute("CREATE TABLE eyetrack (id serial PRIMARY KEY, session_id integer, x integer, y integer, time integer, timestamp double precision);")
+		cur.execute("CREATE TABLE moving_object (id serial PRIMARY KEY, session_id integer, x integer, y integer, timestamp double precision);")
+		cur.close()
+		con.commit()
+		con.close()
+	except Exception as e:
+		print('Cannot create new tables, they already exist')
+		print(str(e))
+
+if __init__ == "__main__":
+	main()
