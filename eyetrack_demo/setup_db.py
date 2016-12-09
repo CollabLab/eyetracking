@@ -6,7 +6,7 @@ from psycopg2 import connect
 import sys
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-user = 'olivergoodman'
+user = 'change_to_your_Postgres_username'
 dbname = 'eyetracking_session_test'
 
 try:
