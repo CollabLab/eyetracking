@@ -1,8 +1,6 @@
-* {
-	background-color: yellow;
-}
+
 #myCanvas {
 	border: 3px #ccc solid;
 	display: inline-block;
-	background-color: blue;
+	background-color: white;
 }
