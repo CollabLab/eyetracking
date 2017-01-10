@@ -1,5 +1,7 @@
 
 /**
+* Source: http://www.html5code.nl/canvas-tutorial/tutorial-canvas-animation-circular-movement/
+*
 * Normalize the browser animation API for all applications. 
 * This asks the browser make a a schedule for redrawing an initial situation 
 * of the screen for the next animation frame .
@@ -141,28 +143,58 @@ Balla.prototype.getBounds = function () {
 };
 
 
-function circularMotion1(){
+// my function to return the ball's current absolute position on the window
+function getBallPosition(ball) {
+  var canvas_x = $('#canvas').position().left;
+  var canvas_y = $('#canvas').position().top;
+  var pos = {x: ball.x + canvas_x, y: ball.y + canvas_y};
+  return pos;
+}
+// my variable to keep track of the ball canvas drawing
+var the_ball = null;
+
+function circularMotion2(){
+  var centerX;
+  var centerY;
+  var rotationRadius=200;
   var time;
+  var degrees = 0;
+  var Angle;
+  var x;
+  var y;
   var canvas = jQuery("#canvas");
   var context = canvas.get(0).getContext("2d");
-  var ball_2 = new Ball(-10,-10,20,'#f00','#000',7);
-  //Maak het Canvas element responsive voor desktop, tablet en smartphone
+  context.canvas.width = window.innerWidth;
+  //function Ball(x,y,radius,color,strokeColor,lineWidth) in ball.js
+  var ball_2 = new Ball(-10,-10,20,'#f16529','#000',7);
+  
+  //get the current state of the ball drawing
+  the_ball = ball_2;
+
   var parentWidth=jQuery(canvas).parent().width();
   var canvasWidth=context.canvas.width = parentWidth;
   
   if (!checkForCanvasSupport) {
-      return;
+  return;
   }
-        
-  (function drawFrame2() {
-    window.requestAnimationFrame(drawFrame2, canvas);
-    var canvasHeight=context.canvas.height= 288;
-    context.clearRect(0,0, canvasWidth,288);
+   
+  (function drawFrame() {
+    window.requestAnimationFrame(drawFrame, canvas);
+    var canvasHeight=context.canvas.height= 500;
+    context.clearRect(0,0,canvasWidth,500); // clear canvas
+    centerX = canvasWidth/2;
+    centerY = canvasHeight/2;
     context.save();
-    time=new Date();
-    context.translate(canvasWidth/2 ,canvasHeight/2);
-    context.rotate( ((2*Math.PI)/6)*time.getSeconds() + ((2*Math.PI)/6000)*time.getMilliseconds() );
-    context.translate(105,0);
+    Angle = degrees * (Math.PI / 180);
+    degrees = degrees + .4;
+    ball_2.x=rotationRadius * Math.cos(setAngle())*2 + centerX;
+    ball_2.y=rotationRadius * Math.sin(setAngle()) + centerY;
     ball_2.draw(context);
-  }());//einde drawFrame
-}//einde circularMotion1
+  }());//end drawFrame
+  
+ function setAngle(){
+  Angle = degrees * (Math.PI / 180);
+  degrees = degrees + .4;
+  return Angle;
+  }//end setAngle
+}//end circularMotion2
