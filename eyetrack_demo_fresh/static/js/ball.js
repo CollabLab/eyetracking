@@ -143,11 +143,11 @@ Balla.prototype.getBounds = function () {
 };
 
 
-// my function to return the ball's current absolute position on the window
+// my function to return the ball's current position within the canvas pane
 function getBallPosition(ball) {
-  var canvas_x = $('#canvas').position().left;
-  var canvas_y = $('#canvas').position().top;
-  var pos = {x: ball.x + canvas_x, y: ball.y + canvas_y};
+  // var canvas_x = $('#canvas').position().left;
+  // var canvas_y = $('#canvas').position().top;
+  var pos = {x: ball.x, y: ball.y};
   return pos;
 }
 // my variable to keep track of the ball canvas drawing
@@ -186,15 +186,15 @@ function circularMotion2(){
     centerY = canvasHeight/2;
     context.save();
     Angle = degrees * (Math.PI / 180);
-    degrees = degrees + .4;
-    ball_2.x=rotationRadius * Math.cos(setAngle())*2 + centerX;
+    degrees = degrees + .25;
+    ball_2.x=rotationRadius * Math.cos(setAngle())*2.5 + centerX;
     ball_2.y=rotationRadius * Math.sin(setAngle()) + centerY;
     ball_2.draw(context);
   }());//end drawFrame
   
  function setAngle(){
   Angle = degrees * (Math.PI / 180);
-  degrees = degrees + .4;
+  degrees = degrees + .25;
   return Angle;
   }//end setAngle
 }//end circularMotion2

@@ -1,4 +1,6 @@
-
+h1 {
+	text-align: center;
+}
 #canvas {
 	display: inline-block;
 	border: 1px solid;background:#FFF;
@@ -12,4 +14,50 @@
     border:3px solid #900;
     border-radius:50%;
     position:fixed;
+}
+
+#stop {
+	width: 60px;
+	height: 60px;
+	background-color: blue;
+	display: inline-block;
+	margin-right: 10px;
+}
+
+#stop:hover {
+	background-color: #5c61f2;
+}
+
+#play {
+	width: 0; 
+	height: 0; 
+	border-top: 30px solid transparent;
+	border-bottom: 30px solid transparent;
+	border-left: 50px solid green;
+	display: inline-block;
+	margin-right: 10px;
+}
+
+#play:hover {
+	border-left: 50px solid #3f9158;
+}
+
+#record {
+	width: 60px;
+	height: 60px;
+	background: red;
+	display: inline-block;
+	border-radius: 50%;
+}
+
+#record:hover {
+	background-color: #f46464;
+}
+
+#controls {
+	text-align: center;
+}
+
+#dropdown {
+	display: inline-block;
 }
