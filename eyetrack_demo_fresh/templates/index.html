@@ -21,7 +21,8 @@
 
 <body>
     <h1>Eyetracking Demo</h1>
-    <div id="controls">
+    <div id="controls"> 
+        <h3>Controls</h3>
         <div id="stop" value="Stop"></div>
         <div id="play" value="Play"></div>
         <div id="record" value="Record"></div>
@@ -35,19 +36,17 @@
                 <li><a href="#" data-value="animation2">Animation 2</a></li>
             </ul>
         </div> -->
+        <br>
+        <button class="btn btn-default" id="btn-pos">Test: get ball position</button>
+        <button class="btn btn-default" id="btn-test-front">Test: send data from front</button>
+        <button class="btn btn-default" id="btn-test-back">Test: get data from back</button>
     </div>
-
-    <button class="btn btn-default" id="btn-pos">get ball position</button>
-
 
     <!-- use for jquery animation -->
     <!-- <div id="ball"></div>   -->
 
+    <!-- HTML5 Canvas -->
     <canvas id="canvas" height="500" width="750"></canvas>
-
-    <div id="log">
-        <p>Log:</p>
-    </div>
 
 </body>
 

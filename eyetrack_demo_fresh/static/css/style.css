@@ -23,7 +23,6 @@ h1 {
 	display: inline-block;
 	margin-right: 10px;
 }
-
 #stop:hover {
 	background-color: #5c61f2;
 }
@@ -36,8 +35,8 @@ h1 {
 	border-left: 50px solid green;
 	display: inline-block;
 	margin-right: 10px;
-}
 
+}
 #play:hover {
 	border-left: 50px solid #3f9158;
 }
@@ -49,13 +48,27 @@ h1 {
 	display: inline-block;
 	border-radius: 50%;
 }
-
 #record:hover {
 	background-color: #f46464;
 }
 
+.armed {
+	background: purple !important;
+}
+.armed-play {
+	border-left: 50px solid purple !important;
+}
+.armed:hover {
+	background-color: #a237b7 !important
+}
+.armed-play:hover {
+	border-left: 50px solid #a237b7 !important;
+}
+
+
 #controls {
-	text-align: center;
+	text-align: left;
+	margin-left: 20px;
 }
 
 #dropdown {
