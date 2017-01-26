@@ -70,6 +70,9 @@ h1 {
 	text-align: left;
 	margin-left: 20px;
 }
+#controls h3 {
+	text-decoration: underline;
+}
 
 #dropdown {
 	display: inline-block;

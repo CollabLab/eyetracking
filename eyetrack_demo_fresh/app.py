@@ -33,6 +33,7 @@ def test_message(message):
 
 @socketio.on('click_test_back')
 def test_message(message):
+    global obj1
     # session['receive_count'] = session.get('receive_count', 0) + 1
     emit('my_response',
          {'data': "data from backend"})
@@ -41,3 +42,4 @@ def test_message(message):
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
+
