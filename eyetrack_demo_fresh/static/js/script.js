@@ -47,28 +47,27 @@ $(document).ready(function() {
   * -----------------------------------------------------------------------------------------------------------------------------------
   */
 
-  // array to store ball's position in memory
-  var ball_positions = [];
+
+  //// GLOBALS ////
+  var trackedObjs = [];
+  playback_time = 0;
+  start_time = 0;
 
   // Play
   var continueAnimating = true;
   $('#play').click(function() {
-    if (ball_positions.length > 0 || recordArmed) {
-      if (recordArmed) {
-        console.log('BEGIN RECORD SESSION: record ball + eyetrack coordinates');
-        ball_positions.length = 0; // reset ball_positions b/c we're starting a new session
-        circularMotion(); //would be replaced by custom animation function
-      } else {
-        console.log('BEGIN PLAYBACK: show last recording session');
-        drawObjects(ball_positions);
-
-        //viewing timestamps of objects
-        var times = [];
-        ball_positions.forEach(function (o){
-          times.push(o.timestamp)
-        })
-        console.log(times);
-      } 
+    if (trackedObjs.length == 0) {
+      console.log("Add an object to track!");
+      return
+    }
+    continueAnimating = true;
+    console.log(trackedObjs);
+    if (recordArmed) {
+      console.log('BEGIN PLAYBACK: start recording');
+      play();
+    } else {
+      console.log('BEGIN PLAYBACK: show recorded sessions of tracked objects')
+      play();
     }
   });
 
@@ -97,14 +96,8 @@ $(document).ready(function() {
   	} else {
     	console.log('END PLAYBACK SESSION')
   	}
-    console.log(ball_positions);
     continueAnimating = false;
-    circularMotion();
-  });
-
-  // get position of ball -- 4 testing
-  $('#btn-pos').click(function() {
-    console.log(getBallPosition(the_ball));
+    play();
   });
 
   // dropdown
@@ -113,74 +106,58 @@ $(document).ready(function() {
     $(this).parents(".dropdown").find('.btn').val($(this).data('value'));
   });
 
+  // add a object to be tracked
+  $('#btn-add-obj').click(function() {
+    random = Math.random() * 500;
+    c = new CircleObject({x:random, y:random}, [], true, "circle");
+    trackedObjs.push(c);
+    console.log('Added circle object')
+  })
+
 
   /** -----------------------------------------------------------------------------------------------------------------------------------
   * -------------------------------------------------------------------------------------------------------------------------------------
-  * Master animation function
+  * Master play function
   * -------------------------------------------------------------------------------------------------------------------------------------
   * -------------------------------------------------------------------------------------------------------------------------------------
-  * params: 
-  *    objs - list of TrackObjects (either type AnimationObject or EyetrackObject)
+  * 
   */
 
-  function drawObjects(objs){ //change name to play
-    continueAnimating = true;
+  function play() {
     var canvas = jQuery("#canvas");
     var context = canvas.get(0).getContext("2d");
     context.canvas.width = window.innerWidth;
-
-    var first_obj = objs[0];
-    var ball = new Ball(first_obj.current_coords.x,first_obj.current_coords.y,20,first_obj.marker,'#000',7);
-
     var parentWidth=jQuery(canvas).parent().width();
     var canvasWidth=context.canvas.width = parentWidth;
-    
+    var canvasHeight=context.canvas.height= 500;
     if (!checkForCanvasSupport) {
-    return;
+      return;
     }
 
-    // index of current object being drawn
-    obj_index = 0;
-     
+    start_time = Date.now();
     // Main update loop 
     (function drawFrame() {
+      playback_time = Date.now() - start_time;
+
       if (!continueAnimating) {
         context.clearRect(0, 0, canvas.width, canvas.height);
         return;
       }
-      
-      if (obj_index >= objs.length) {obj_index = 0}
-      window.requestAnimationFrame(drawFrame, canvas);
-      var canvasHeight=context.canvas.height= 500;
-      // context.clearRect(0,0,canvasWidth,500); // clear canvas
+      context.clearRect(0, 0, canvas.width, canvas.height);
       context.save();
-      ball.x=objs[obj_index].current_coords.x;
-      ball.y=objs[obj_index].current_coords.y;
-      ball.draw(context);
-      obj_index ++;
+
+      // loop thru each tracked object
+      trackedObjs.forEach(function(obj) {
+        var coords = obj.update(playback_time, context);
+        obj.marker.draw(context, coords);
+
+        // add current corods to session
+        obj.session_coords.push(coords);
+      });
+
+      window.requestAnimationFrame(drawFrame, canvas);
     }());//end drawFrame
   }
-
-  /*
-  * Testing stuff
-  */
-  var test_positions = []
-  for (var i=0; i<100; i++) {
-    test_positions.push({x: 100, y: 100});
-  }
-  for (var i=0; i<100; i++) {
-    test_positions.push({x: 300, y: 100});
-  }
-  $('#btn-test-play').click(function() {
-    var testing_oop = []
-    for (var i=0; i<50; i++) {
-      testing_oop.push(new AnimationObject({x: 100, y:100}, 'test_session', '#42f477', true, 'test'));
-    }
-    for (var i=0; i<50; i++) {
-      testing_oop.push(new AnimationObject({x: 200, y:100}, 'test_session', '#42f477', true, 'test'));
-    }
-    drawObjects(testing_oop)
-  });
 
 
   /*
@@ -206,37 +183,67 @@ $(document).ready(function() {
   }
 
   ///// Parent Track Object class
-  function TrackObject(current_coords, session_coords, marker, visible, stream) {
+  function TrackObject(current_coords, session_coords, visible, stream) {
     this.current_coords = current_coords;
     this.session_coords = session_coords;
-    this.marker = marker;
     this.visible = visible;
     this.stream = stream;
-    this.timestamp = Date.now();
   }
-
   TrackObject.prototype.drawObject = function() {
-    drawObjects([this])
+    play([this])
   }
 
-  ////// Child class: Animation Object
-  function AnimationObject(current_coords, session_coords, marker, visible, stream) {
-    TrackObject.call(this, current_coords, session_coords, marker, visible, stream);
+  ////// Child class: Marker Object
+  function MarkerObject(current_coords, session_coords, visible, stream) {
+    TrackObject.call(this, current_coords, session_coords, visible, stream);
   }
   // inherit parent class
-  inheritPrototype(AnimationObject, TrackObject);
+  inheritPrototype(MarkerObject, TrackObject);
 
-  //AnimationObject method: draw the object
-  AnimationObject.prototype.circularMotion = function() {
-    circularMotion();
-  }
-
-  ////// Child class: EyetrackObject Object
-  function EyetrackObject(current_coords, session_coords, marker, visible, stream) {
-    TrackObject.call(this, current_coords, session_coords, marker, visible, stream);
+  ///// Grandchild class: CircleObject -- extends MarkerObject
+  function CircleObject(current_coords, session_coords, visible, stream) {
+    MarkerObject.call(this, current_coords, session_coords, visible, stream);
+    if (current_coords) {
+      this.marker =  new Ball(current_coords.x, current_coords.y, 20, 'blue', 'blue', 7);
+    }
+    else {
+      this.marker =  new Ball(0, 0, 20, 'blue', 'blue', 7);
+    }
+    
   }
   // inherit parent class
-  inheritPrototype(EyetrackObject, TrackObject);
+  inheritPrototype(CircleObject, MarkerObject);
+  CircleObject.prototype.update = function(time, context) {
+    //get updated position in frame
+    return this.animate(time, context);
+  }
+  CircleObject.prototype.animate = function(time, context) {
+    // calculate new position based off time
+    // Ax = rcos(ts) + center
+    // Ay = rsin(ts) + center
+    var parentWidth=jQuery(canvas).parent().width();
+    var canvasWidth=context.canvas.width = parentWidth;
+    var canvasHeight=context.canvas.height= 500;
+    var centerX = canvasWidth/2;
+    var centerY = canvasHeight/2;
+    var rotationRadius=200;
+    var stretch_width = 2.5;
+    var stretch_time = 5;
+
+    var _x = stretch_width * rotationRadius * Math.cos((time/stretch_time) * (0.25*Math.PI/180)) + centerX //moves as .25degrees/sec
+    var _y = rotationRadius * Math.sin((time/5) * (0.25*Math.PI/180)) + centerY
+
+    var coords = {x:_x, y:_y, time: time};
+    return coords;
+  }
+
+  ////// Child class: GazeObject Object
+  function GazeObject(current_coords, session_coords, visible, stream) {
+    TrackObject.call(this, current_coords, session_coords, visible, stream);
+    this.marker =  new Ball(0, 0, 20, 'green', 'green', 7);
+  }
+  // inherit parent class
+  inheritPrototype(GazeObject, TrackObject);
 
 
   /** -------------------------------------------------------------------------------------------------------------------------------------
@@ -290,7 +297,7 @@ $(document).ready(function() {
     if (x === undefined) { x = 0; }
     if (y === undefined) { y = 0; }
     if (radius === undefined) { radius = 20; }
-    if (color === undefined) { color = "#f00"; }
+    if (color === undefined) { color = "blue"; }
     if (strokeColor === undefined) { strokeColor = "#000"; }
     if (lineWidth === undefined) { lineWidth = "7"; }
     this.radius=radius;
@@ -307,7 +314,9 @@ $(document).ready(function() {
     //this.vy = 0;
   }
     
-  Ball.prototype.draw = function (context) {
+  Ball.prototype.draw = function (context, coords) {
+    //do something with coords
+
     context.save();
     context.rotate(this.rotation);
     context.scale(this.scaleX, this.scaleY);
@@ -315,7 +324,7 @@ $(document).ready(function() {
     context.fillStyle = this.color;
     context.beginPath();
     //x, y, radius, start_angle, end_angle, anti-clockwise
-    context.arc(this.x, this.y, this.radius, 0, (Math.PI * 2), true);
+    context.arc(coords.x, coords.y, this.radius, 0, (Math.PI * 2), true);
     //x, y, radius, start_angle, end_angle, anti-clockwise
     context.closePath();
     context.fill();
@@ -323,75 +332,7 @@ $(document).ready(function() {
     context.stroke();
     }  
     context.restore();
-    };
-
-  Ball.prototype.getBounds = function () {
-    return {
-      x: this.x - this.radius,
-      y: this.y - this.radius,
-      width: this.radius * 2,
-      height: this.radius * 2
-    };
   };
-
-  function Balla (x,y,radius,color,strokeColor,lineWidth) {
-    //ball2 = new Ball(2, Math.random() * 0xffffff,20,'#a3caff','#f00',1);
-    if (x === undefined) { x = 0; }
-    if (y === undefined) { y = 0; }
-    if (radius === undefined) { radius = 20; }
-    if (color === undefined) { color = "#f00"; }
-    if (strokeColor === undefined) { strokeColor = "#000"; }
-    if (lineWidth === undefined) { lineWidth = "7"; }
-    this.radius=radius;
-    //this.color = service.parseColor(color);
-    this.color = color;
-    this.strokeColor=strokeColor;
-    this.lineWidth = lineWidth;
-    this.x = x;
-    this.y = y;
-    this.rotation = 0;
-    this.scaleX = 1;
-    this.scaleY = 1;
-    //this.vx = 0;
-   // this.vy = 0;
-     }
-    
-  Balla.prototype.draw = function (context) {
-    context.save();
-    context.rotate(this.rotation);
-    context.scale(this.scaleX, this.scaleY);
-    context.lineWidth = this.lineWidth;
-    context.fillStyle = this.color;
-    context.beginPath();
-    //x, y, radius, start_angle, end_angle, anti-clockwise
-    context.arc(this.x, this.y, this.radius, 0, (Math.PI * 2), true);
-    //x, y, radius, start_angle, end_angle, anti-clockwise
-    context.closePath();
-    context.fill();
-    if (this.lineWidth > 0) {
-    context.stroke();
-    }  
-    context.restore();
-    };
-
-  Balla.prototype.getBounds = function () {
-    return {
-      x: this.x - this.radius,
-      y: this.y - this.radius,
-      width: this.radius * 2,
-      height: this.radius * 2
-    };
-  };
-
-
-  // my function to return the ball's current position within the canvas pane
-  function getBallPosition(ball) {
-    // var canvas_x = $('#canvas').position().left;
-    // var canvas_y = $('#canvas').position().top;
-    var pos = {x: ball.x, y: ball.y};
-    return pos;
-  }
-
 
   /* -------------------------------------------------------------------------------------------------------------------------------------
   * --------------------------------------------------------------------------------------------------------------------------------------
@@ -399,7 +340,7 @@ $(document).ready(function() {
   * --------------------------------------------------------------------------------------------------------------------------------------
   ----------------------------------------------------------------------------------------------------------------------------------------
   */
-  //// Function that precomputes list of AnimationObjects to be animated
+  //// Function that precomputes list of MarkerObjects to be animated
   //// this animation function is a secondary feature, another custom function that takes time as a param will be used
   function circle() {
     circle_coords = [];
@@ -420,7 +361,7 @@ $(document).ready(function() {
       degrees = degrees + .25;
       x = rotationRadius * Math.cos(setAngle())*2.5 + centerX;
       y = rotationRadius * Math.sin(setAngle()) + centerY;
-      circle_coords.push( new AnimationObject({'x': x, 'y': y}, 'precomputed_circle_session', '#42f477', true, 'circle_stream') );
+      circle_coords.push( new CircleObject({'x': x, 'y': y}, 'precomputed_circle_session', true, 'circle_stream') );
     }
     
     function setAngle(){
@@ -431,91 +372,6 @@ $(document).ready(function() {
 
     return circle_coords;
   }
-
-  //// circular motion animation
-  // my variable to keep track of the ball canvas drawing
-  var the_ball = null;
-  function circularMotion(){
-    var centerX;
-    var centerY;
-    var rotationRadius=200;
-    var time;
-    var degrees = 0;
-    var Angle;
-    var x;
-    var y;
-    var canvas = jQuery("#canvas");
-    var context = canvas.get(0).getContext("2d");
-    context.canvas.width = window.innerWidth;
-    //function Ball(x,y,radius,color,strokeColor,lineWidth) in ball.js
-    var ball = new Ball(-10,-10,20,'purple','#000',7);
-    
-    //get the current state of the ball drawing
-    the_ball = ball;
-
-    var parentWidth=jQuery(canvas).parent().width();
-    var canvasWidth=context.canvas.width = parentWidth;
-    
-    if (!checkForCanvasSupport) {
-    return;
-    }
-
-    // variables about the memory storage of ball coords
-    var num_ball_coords = ball_positions.length;
-    var i_ball = -1;
-
-    // Main update loop 
-    (function drawFrame() {
-      if (!continueAnimating) {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        return;
-      }
-
-      // if in PLAYBACK mode
-      if (recordArmed == false) {
-      	i_ball ++;
-     		if (i_ball >= num_ball_coords) {i_ball = 0;}
-
-     		window.requestAnimationFrame(drawFrame, canvas);
-     		var canvasHeight=context.canvas.height= 500;
-     		context.clearRect(0,0,canvasWidth,500); // clear canvas
-     		centerX = canvasWidth/2;
-     		centerY = canvasHeight/2;
-     		context.save();
-     		Angle = degrees * (Math.PI / 180);
-     		degrees = degrees + .25;
-
-     		ball.x=ball_positions[i_ball].x;
-     		ball.y=ball_positions[i_ball].y;
-     		ball.draw(context);
-     	}
-
-     	// if in RECORD mode
-      else {
-      	window.requestAnimationFrame(drawFrame, canvas);
-      	var canvasHeight=context.canvas.height= 500;
-      	context.clearRect(0,0,canvasWidth,500); // clear canvas
-      	centerX = canvasWidth/2;
-      	centerY = canvasHeight/2;
-      	context.save();
-      	Angle = degrees * (Math.PI / 180);
-      	degrees = degrees + .25;
-      	ball.x=rotationRadius * Math.cos(setAngle())*2.5 + centerX;
-      	ball.y=rotationRadius * Math.sin(setAngle()) + centerY;
-      	ball.draw(context);
-
-      	// store the current position of the ball
-      	ball_positions.push( new AnimationObject(getBallPosition(ball), 'circularMotion-test', '#42f477', true, 'circularMotion-stream') ); 
-      }
-    }());//end drawFrame
-    
-   function setAngle(){
-    Angle = degrees * (Math.PI / 180);
-    degrees = degrees + .25;
-    return Angle;
-    }//end setAngle
-  }//end circularMotion
-
 
   /* 
   * -----------------------------------------------------------------------------------------------------------------------------------
