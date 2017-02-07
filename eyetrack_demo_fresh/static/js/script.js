@@ -50,29 +50,41 @@ $(document).ready(function() {
 
   //// GLOBALS ////
   var trackedObjs = [];
-  playback_time = 0;
-  start_time = 0;
+  var playback_time = 0;
+  var start_time = 0;
+  var recordArmed = false;
+  var continueAnimating = true;
 
   // Play
-  var continueAnimating = true;
   $('#play').click(function() {
     if (trackedObjs.length == 0) {
       console.log("Add an object to track!");
       return
     }
     continueAnimating = true;
-    console.log(trackedObjs);
     if (recordArmed) {
       console.log('BEGIN PLAYBACK: start recording');
-      play();
+
+      // clear out the previous session
+      trackedObjs.forEach(function(obj) {
+        obj.session_coords.length = 0;
+      });
+
+      play('record');
     } else {
-      console.log('BEGIN PLAYBACK: show recorded sessions of tracked objects')
-      play();
+
+      // if a previous session exists, play it back
+      if (trackedObjs.some(obj => obj.session_coords.length > 0)) {
+        console.log('BEGIN PLAYBACK: show recorded sessions of tracked objects');
+        play('playback'); 
+      } 
+      else {
+        console.log('no sessions to playback')
+      }
     }
   });
 
   //  Record: Toggling between recording/playback modes
-  var recordArmed = false;
   $('#record').click(function() {
     if (recordArmed) {
     	recordArmed = false;  
@@ -88,6 +100,7 @@ $(document).ready(function() {
 
   // Stop
   $('#stop').click(function() {
+    console.log('trackedObjs', trackedObjs);
   	if (recordArmed) {
   		recordArmed = false;  
   		$('#record').removeClass("armed");
@@ -97,7 +110,7 @@ $(document).ready(function() {
     	console.log('END PLAYBACK SESSION')
   	}
     continueAnimating = false;
-    play();
+    play('stop');
   });
 
   // dropdown
@@ -106,13 +119,34 @@ $(document).ready(function() {
     $(this).parents(".dropdown").find('.btn').val($(this).data('value'));
   });
 
-  // add a object to be tracked
-  $('#btn-add-obj').click(function() {
-    random = Math.random() * 500;
-    c = new CircleObject({x:random, y:random}, [], true, "circle");
-    trackedObjs.push(c);
-    console.log('Added circle object')
-  })
+  // toggle controls for adding / removing objects
+  $(".toggle").prop('checked', false).change();
+
+  $('#toggle-circle').change(function() {
+    if ($(this).prop('checked')){
+      c = new CircleObject({x:0, y:0}, [], true, "circle");
+      trackedObjs.push(c);
+    } else {
+      for (var i=0; i<trackedObjs.length; i++) {
+        if (trackedObjs[i].stream == 'circle') {
+          trackedObjs.splice(i, i+1);
+        }
+      }
+    }
+  });
+
+  $('#toggle-circle2').change(function() {
+    if ($(this).prop('checked')){
+      c2 = new CircleObject2({x:0, y:0}, [], true, "circle2");
+      trackedObjs.push(c2);
+    } else {
+      for (var i=0; i<trackedObjs.length; i++) {
+        if (trackedObjs[i].stream == 'circle2') {
+          trackedObjs.splice(i, i+1);
+        }
+      }
+    }
+  });
 
 
   /** -----------------------------------------------------------------------------------------------------------------------------------
@@ -123,7 +157,7 @@ $(document).ready(function() {
   * 
   */
 
-  function play() {
+  function play(mode) {
     var canvas = jQuery("#canvas");
     var context = canvas.get(0).getContext("2d");
     context.canvas.width = window.innerWidth;
@@ -134,29 +168,108 @@ $(document).ready(function() {
       return;
     }
 
-    start_time = Date.now();
-    // Main update loop 
-    (function drawFrame() {
-      playback_time = Date.now() - start_time;
-
-      if (!continueAnimating) {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        return;
-      }
+    if (mode == 'stop') {
       context.clearRect(0, 0, canvas.width, canvas.height);
-      context.save();
+      return
+    } 
 
-      // loop thru each tracked object
-      trackedObjs.forEach(function(obj) {
-        var coords = obj.update(playback_time, context);
-        obj.marker.draw(context, coords);
+    else if (mode == 'playback') {
+      console.log('playback');
+      start_time = Date.now();
+      (function drawFramePlayback() {
+        playback_time = Date.now() - start_time;
+        if (!continueAnimating) {
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.save();
 
-        // add current corods to session
-        obj.session_coords.push(coords);
-      });
+        // loop thru each tracked objects
+        for (var i=0; i<trackedObjs.length; i++) {
+          var obj = trackedObjs[i];
+          var session = obj.session_coords;
+          var coords = undefined;
+          var recording_time = session[session.length-1].time;
+          
+          // start playback from the beginnning when reach the end
+          if (playback_time > recording_time) {
+            start_time = Date.now();
+            break;
+          }
 
-      window.requestAnimationFrame(drawFrame, canvas);
-    }());//end drawFrame
+          // loop thru session_coords
+          for (var j=0; j<session.length; j++) {
+            var s = session[j];
+            if (playback_time < s.time) {
+              coords = s;
+              break;
+            }
+          }
+          if (obj) {
+            obj.marker.x = coords.x;
+            obj.marker.y = coords.y;
+          }
+        };
+
+        // update positions of the markers
+        drawTrackedObjects(context, mode);
+
+        // request new frame
+        window.requestAnimationFrame(drawFramePlayback, canvas);
+      }());//end drawFramePlayback
+    } 
+
+    else if (mode == 'record') {
+      console.log('record');
+      start_time = Date.now();
+      (function drawFrameRecord() {
+        playback_time = Date.now() - start_time;
+        if (!continueAnimating) {
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+        context.save();
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // loop thru each tracked object
+        trackedObjs.forEach(function(obj) {
+          var coords = obj.update(playback_time, context);
+          // obj.marker.draw(context, coords, mode);
+          obj.marker.x = coords.x;
+          obj.marker.y = coords.y;
+        });
+        
+        // update positions of the markers
+        drawTrackedObjects(context, mode);
+
+        // request new frame
+        window.requestAnimationFrame(drawFrameRecord, canvas);
+      }());//end drawFrameRecord
+    }    
+  }
+
+  // Function to draw every tracked object on the canvas
+  function drawTrackedObjects(context, mode){
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.save();
+    for (var i=0; i<trackedObjs.length; i++) {
+      var obj = trackedObjs[i];
+      var marker = obj.marker;
+
+      context.rotate(marker.rotation);
+      context.scale(marker.scaleX, marker.scaleY);
+      context.lineWidth = marker.lineWidth;
+      context.fillStyle = marker.color;
+      context.beginPath();
+      context.arc(marker.x, marker.y, marker.radius, 0, (Math.PI * 2), true);
+      context.closePath(); 
+      context.fill();
+      if (marker.lineWidth > 0) {
+      context.stroke();
+      }  
+    }
+    context.restore();
   }
 
 
@@ -189,9 +302,6 @@ $(document).ready(function() {
     this.visible = visible;
     this.stream = stream;
   }
-  TrackObject.prototype.drawObject = function() {
-    play([this])
-  }
 
   ////// Child class: Marker Object
   function MarkerObject(current_coords, session_coords, visible, stream) {
@@ -204,10 +314,10 @@ $(document).ready(function() {
   function CircleObject(current_coords, session_coords, visible, stream) {
     MarkerObject.call(this, current_coords, session_coords, visible, stream);
     if (current_coords) {
-      this.marker =  new Ball(current_coords.x, current_coords.y, 20, 'blue', 'blue', 7);
+      this.marker =  new Ball(current_coords.x, current_coords.y, 20, 'blue', 'blue', 5);
     }
     else {
-      this.marker =  new Ball(0, 0, 20, 'blue', 'blue', 7);
+      this.marker =  new Ball(0, 0, 20, 'blue', 'blue', 5);
     }
     
   }
@@ -233,17 +343,63 @@ $(document).ready(function() {
     var _x = stretch_width * rotationRadius * Math.cos((time/stretch_time) * (0.25*Math.PI/180)) + centerX //moves as .25degrees/sec
     var _y = rotationRadius * Math.sin((time/5) * (0.25*Math.PI/180)) + centerY
 
-    var coords = {x:_x, y:_y, time: time};
+    var coords = {'x':_x, 'y':_y, time: time};
+    this.session_coords.push(coords);
+    return coords;
+  }
+
+  ///// Grandchild class: CircleObject2 -- extends MarkerObject
+  function CircleObject2(current_coords, session_coords, visible, stream) {
+    MarkerObject.call(this, current_coords, session_coords, visible, stream);
+    if (current_coords) {
+      this.marker = new Ball(current_coords.x, current_coords.y, 20, 'yellow', 'yellow', 5);
+    }
+    else {
+      this.marker = new Ball(0, 0, 20, 'yellow', 'yellow', 5);
+    }
+    
+  }
+  // inherit parent class
+  inheritPrototype(CircleObject2, MarkerObject);
+  CircleObject2.prototype.update = function(time, context) {
+    //get updated position in frame
+    return this.animate(time, context);
+  }
+  CircleObject2.prototype.animate = function(time, context) {
+    // calculate new position based off time
+    // Ax = rcos(ts) + center
+    // Ay = rsin(ts) + center
+    var parentWidth=jQuery(canvas).parent().width();
+    var canvasWidth=context.canvas.width = parentWidth;
+    var canvasHeight=context.canvas.height= 500;
+    var centerX = canvasWidth/2;
+    var centerY = canvasHeight/2;
+    var rotationRadius=200;
+    var stretch_width = 1;
+    var stretch_time = 5;
+
+    var _x = stretch_width * rotationRadius * Math.cos((time/stretch_time) * (0.25*Math.PI/180)) + centerX //moves as .25degrees/sec
+    var _y = rotationRadius * Math.sin((time/5) * (0.25*Math.PI/180)) + centerY
+
+    var coords = {'x':_x, 'y':_y, time: time};
+    this.session_coords.push(coords);
     return coords;
   }
 
   ////// Child class: GazeObject Object
   function GazeObject(current_coords, session_coords, visible, stream) {
     TrackObject.call(this, current_coords, session_coords, visible, stream);
-    this.marker =  new Ball(0, 0, 20, 'green', 'green', 7);
+    this.marker = new Ball(0, 0, 20, 'green', 'green', 7);
   }
   // inherit parent class
   inheritPrototype(GazeObject, TrackObject);
+  GazeObject.prototype.update = function(time, context) {
+    //get updated position in frame
+    return this.animate(time, context);
+  }
+  GazeObject.prototype.animate = function(time, context) {
+    // calculate new position based off time
+  }
 
 
   /** -------------------------------------------------------------------------------------------------------------------------------------
@@ -298,7 +454,7 @@ $(document).ready(function() {
     if (y === undefined) { y = 0; }
     if (radius === undefined) { radius = 20; }
     if (color === undefined) { color = "blue"; }
-    if (strokeColor === undefined) { strokeColor = "#000"; }
+    if (strokeColor === undefined) { strokeColor = "#fff"; }
     if (lineWidth === undefined) { lineWidth = "7"; }
     this.radius=radius;
     //this.color = service.parseColor(color);
@@ -314,9 +470,12 @@ $(document).ready(function() {
     //this.vy = 0;
   }
     
-  Ball.prototype.draw = function (context, coords) {
-    //do something with coords
-
+  Ball.prototype.draw = function (context, coords, mode) {
+    // console.log(this);
+    // do something with coords
+    // if (mode == 'playback') {
+    //   context.clearRect(0, 0, canvas.width, canvas.height);
+    // }
     context.save();
     context.rotate(this.rotation);
     context.scale(this.scaleX, this.scaleY);
@@ -325,7 +484,6 @@ $(document).ready(function() {
     context.beginPath();
     //x, y, radius, start_angle, end_angle, anti-clockwise
     context.arc(coords.x, coords.y, this.radius, 0, (Math.PI * 2), true);
-    //x, y, radius, start_angle, end_angle, anti-clockwise
     context.closePath();
     context.fill();
     if (this.lineWidth > 0) {
@@ -333,6 +491,7 @@ $(document).ready(function() {
     }  
     context.restore();
   };
+
 
   /* -------------------------------------------------------------------------------------------------------------------------------------
   * --------------------------------------------------------------------------------------------------------------------------------------
@@ -402,4 +561,3 @@ $(document).ready(function() {
   }
 
 });
-
