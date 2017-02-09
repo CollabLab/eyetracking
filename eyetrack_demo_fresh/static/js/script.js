@@ -148,6 +148,19 @@ $(document).ready(function() {
     }
   });
 
+  $('#toggle-circle3').change(function() {
+    if ($(this).prop('checked')){
+      c3 = new CircleObject3({x:0, y:0}, [], true, "circle3");
+      trackedObjs.push(c3);
+    } else {
+      for (var i=0; i<trackedObjs.length; i++) {
+        if (trackedObjs[i].stream == 'circle3') {
+          trackedObjs.splice(i, i+1);
+        }
+      }
+    }
+  });
+
 
   /** -----------------------------------------------------------------------------------------------------------------------------------
   * -------------------------------------------------------------------------------------------------------------------------------------
@@ -386,10 +399,48 @@ $(document).ready(function() {
     return coords;
   }
 
+  ///// Grandchild class: CircleObject3 -- extends MarkerObject
+  function CircleObject3(current_coords, session_coords, visible, stream) {
+    MarkerObject.call(this, current_coords, session_coords, visible, stream);
+    if (current_coords) {
+      this.marker = new Ball(current_coords.x, current_coords.y, 20, 'green', 'green', 5);
+    }
+    else {
+      this.marker = new Ball(0, 0, 20, 'green', 'green', 5);
+    }
+    
+  }
+  // inherit parent class
+  inheritPrototype(CircleObject3, MarkerObject);
+  CircleObject3.prototype.update = function(time, context) {
+    //get updated position in frame
+    return this.animate(time, context);
+  }
+  CircleObject3.prototype.animate = function(time, context) {
+    // calculate new position based off time
+    // Ax = rcos(ts) + center
+    // Ay = rsin(ts) + center
+    var parentWidth=jQuery(canvas).parent().width();
+    var canvasWidth=context.canvas.width = parentWidth;
+    var canvasHeight=context.canvas.height= 500;
+    var centerX = canvasWidth/2;
+    var centerY = canvasHeight/2;
+    var rotationRadius = 150;
+    var stretch_width = 2;
+    var stretch_time = 5;
+
+    var _x = stretch_width * rotationRadius * Math.cos((time/stretch_time) * (0.3*Math.PI/180)) + centerX; //moves as .25degrees/sec
+    var _y = rotationRadius;
+
+    var coords = {'x':_x, 'y':_y, time: time};
+    this.session_coords.push(coords);
+    return coords;
+  }
+
   ////// Child class: GazeObject Object
   function GazeObject(current_coords, session_coords, visible, stream) {
     TrackObject.call(this, current_coords, session_coords, visible, stream);
-    this.marker = new Ball(0, 0, 20, 'green', 'green', 7);
+    this.marker = new Ball(0, 0, 20, 'red', 'red', 7);
   }
   // inherit parent class
   inheritPrototype(GazeObject, TrackObject);
