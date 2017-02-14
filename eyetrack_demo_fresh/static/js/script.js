@@ -1,5 +1,17 @@
 $(document).ready(function() {
 
+  //// GLOBALS ////
+  var trackedObjs = [];
+  var playback_time = 0;
+  var start_time = 0;
+  var recordArmed = false;
+  var continueAnimating = true;
+  var gaze_session_data = [];
+  var currentlyPlaying = false;
+  var eyetribe = new GazeObject({}, [], true, 'eyetribe');
+  trackedObjs.push(eyetribe);
+
+
    /* -----------------------------------------------------------------------------------------------------------------------------------
   * ------------------------------------------------------------------------------------------------------------------------------------
   * Flask socketio connection
@@ -21,14 +33,39 @@ $(document).ready(function() {
 
   // Event handler for server sent data.
   // The callback function is invoked whenever the server emits data
-  // to the client. The data is then displayed in the "Received"
-  // section of the page.
+  // to the client.
   socket.on('my_response', function(msg) {
-      console.log(msg)
+    data = msg.data;
+    console.log(data)
   });
 
+  // Event handler for the getting eyetribe data from server
+  // Saves session eyetracking into memory
+  socket.on('send_gaze_data', function(msg){
+    try {
+      json_data = jQuery.parseJSON(jQuery.parseJSON(JSON.stringify(msg.data)));
+      gaze_coords = json_data['values']['frame']['avg'];
+      gaze_time = json_data['values']['frame']['time'];
+      gaze_data = {
+        'x': gaze_coords['x'],
+        'y': gaze_coords['y'],
+        'time': gaze_time
+      };
 
-  // testing socket pong/pong
+      if (recordArmed && currentlyPlaying) {
+        trackedObjs.forEach(function(obj) {
+          if (obj.stream  === 'eyetribe'){
+            obj.session_coords.push(gaze_data);
+          }
+        });
+      }
+    }
+    catch (err) {
+      console.log(err, msg);
+    }
+
+  });
+
   $('button#btn-test-front').click(function(event) {
     socket.emit('click_test_front', {data: 'test data from frontend'});
     return false;
@@ -48,15 +85,9 @@ $(document).ready(function() {
   */
 
 
-  //// GLOBALS ////
-  var trackedObjs = [];
-  var playback_time = 0;
-  var start_time = 0;
-  var recordArmed = false;
-  var continueAnimating = true;
-
   // Play
   $('#play').click(function() {
+    currentlyPlaying = true;
     if (trackedObjs.length == 0) {
       console.log("Add an object to track!");
       return
@@ -100,7 +131,7 @@ $(document).ready(function() {
 
   // Stop
   $('#stop').click(function() {
-    console.log('trackedObjs', trackedObjs);
+    currentlyPlaying = false;
   	if (recordArmed) {
   		recordArmed = false;  
   		$('#record').removeClass("armed");
@@ -111,6 +142,8 @@ $(document).ready(function() {
   	}
     continueAnimating = false;
     play('stop');
+    normalizeGazeTimes();
+    console.log('trackedObjs', trackedObjs);
   });
 
   // dropdown
@@ -187,7 +220,6 @@ $(document).ready(function() {
     } 
 
     else if (mode == 'playback') {
-      console.log('playback');
       start_time = Date.now();
       (function drawFramePlayback() {
         playback_time = Date.now() - start_time;
@@ -234,7 +266,6 @@ $(document).ready(function() {
     } 
 
     else if (mode == 'record') {
-      console.log('record');
       start_time = Date.now();
       (function drawFrameRecord() {
         playback_time = Date.now() - start_time;
@@ -247,10 +278,11 @@ $(document).ready(function() {
 
         // loop thru each tracked object
         trackedObjs.forEach(function(obj) {
-          var coords = obj.update(playback_time, context);
-          // obj.marker.draw(context, coords, mode);
-          obj.marker.x = coords.x;
-          obj.marker.y = coords.y;
+          if (obj instanceof(MarkerObject)) {
+            var coords = obj.update(playback_time, context);
+            obj.marker.x = coords.x;
+            obj.marker.y = coords.y;
+          }
         });
         
         // update positions of the markers
@@ -259,7 +291,7 @@ $(document).ready(function() {
         // request new frame
         window.requestAnimationFrame(drawFrameRecord, canvas);
       }());//end drawFrameRecord
-    }    
+    }
   }
 
   // Function to draw every tracked object on the canvas
@@ -285,6 +317,19 @@ $(document).ready(function() {
     context.restore();
   }
 
+  // normalizes the timestamps in the stored session of gaze coords
+  function normalizeGazeTimes() {
+    // normalize times in Eyetribe gaze session after recording
+    trackedObjs.forEach(function(obj){
+      if (obj.constructor.name === 'GazeObject'){
+        var session_data = obj['session_coords'];
+        var gaze_start_time = session_data[0]['time'];
+        session_data.forEach(function(o) {
+          o['time'] = o['time'] - gaze_start_time;
+        });
+      }
+    });
+  }
 
   /*
   * ----------------------------------------------------------------------------------------------------------------------------------
@@ -449,7 +494,7 @@ $(document).ready(function() {
     return this.animate(time, context);
   }
   GazeObject.prototype.animate = function(time, context) {
-    // calculate new position based off time
+    return 'need to implement eyetribe update/animate'
   }
 
 
