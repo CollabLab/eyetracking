@@ -10,9 +10,11 @@ $(document).ready(function() {
   var currentlyPlaying = false;
   var eyetribe = new GazeObject({}, [], true, 'eyetribe');
   trackedObjs.push(eyetribe);
+  var HIGHLIGHTED = '#d6ff51'
+  window.PROXIMITY_THRESHOLD = 150;
 
 
-   /* -----------------------------------------------------------------------------------------------------------------------------------
+  /* -----------------------------------------------------------------------------------------------------------------------------------
   * ------------------------------------------------------------------------------------------------------------------------------------
   * Flask socketio connection
   * -----------------------------------------------------------------------------------------------------------------------------------
@@ -88,19 +90,15 @@ $(document).ready(function() {
   // Play
   $('#play').click(function() {
     currentlyPlaying = true;
-    if (trackedObjs.length == 0) {
+    if (!(trackedObjs.some(obj => obj instanceof(MarkerObject))) && (trackedObjs.some(obj => obj.session_coords.length === 0))) {
       console.log("Add an object to track!");
       return
     }
     continueAnimating = true;
     if (recordArmed) {
       console.log('BEGIN PLAYBACK: start recording');
-
       // clear out the previous session
-      trackedObjs.forEach(function(obj) {
-        obj.session_coords.length = 0;
-      });
-
+      clearPastSessions();
       play('record');
     } else {
 
@@ -115,7 +113,7 @@ $(document).ready(function() {
     }
   });
 
-  //  Record: Toggling between recording/playback modes
+  // Record: Toggling between recording/playback modes
   $('#record').click(function() {
     if (recordArmed) {
     	recordArmed = false;  
@@ -123,6 +121,7 @@ $(document).ready(function() {
     	$('#play').removeClass("armed-play");
     	console.log('END RECORD SESSION')
     } else {
+      clearPastSessions();
     	recordArmed = true;
       $('#record').addClass("armed");
       $('#play').addClass("armed-play");
@@ -194,7 +193,6 @@ $(document).ready(function() {
     }
   });
 
-
   /** -----------------------------------------------------------------------------------------------------------------------------------
   * -------------------------------------------------------------------------------------------------------------------------------------
   * Master play function
@@ -209,13 +207,18 @@ $(document).ready(function() {
     context.canvas.width = window.innerWidth;
     var parentWidth=jQuery(canvas).parent().width();
     var canvasWidth=context.canvas.width = parentWidth;
-    var canvasHeight=context.canvas.height= 500;
+    var canvasHeight=context.canvas.height= 700;
     if (!checkForCanvasSupport) {
       return;
     }
 
     if (mode == 'stop') {
       context.clearRect(0, 0, canvas.width, canvas.height);
+      trackedObjs.forEach(function(obj) {
+        if (obj instanceof(MarkerObject)) {
+          obj.marker.color = 'blue';
+        }
+      });
       return
     } 
 
@@ -228,21 +231,19 @@ $(document).ready(function() {
           return;
         }
         context.clearRect(0, 0, canvas.width, canvas.height);
-        context.save();
+        context.save(); 
 
-        // loop thru each tracked objects
+        // loop thru each tracked objects to update their positions
         for (var i=0; i<trackedObjs.length; i++) {
           var obj = trackedObjs[i];
           var session = obj.session_coords;
           var coords = undefined;
           var recording_time = session[session.length-1].time;
-          
           // start playback from the beginnning when reach the end
           if (playback_time > recording_time) {
             start_time = Date.now();
             break;
           }
-
           // loop thru session_coords
           for (var j=0; j<session.length; j++) {
             var s = session[j];
@@ -251,21 +252,27 @@ $(document).ready(function() {
               break;
             }
           }
-          if (obj) {
+          try {
             obj.marker.x = coords.x;
             obj.marker.y = coords.y;
+          } catch (error) {
+            console.log(error);
           }
         };
-
+        // highlight the closest object
+        closest_object_index = findClosestObject();
+        if (closest_object_index !== 0) {
+          trackedObjs[closest_object_index].marker.color = HIGHLIGHTED;  
+        }
         // update positions of the markers
         drawTrackedObjects(context, mode);
-
         // request new frame
         window.requestAnimationFrame(drawFramePlayback, canvas);
       }());//end drawFramePlayback
     } 
 
     else if (mode == 'record') {
+      clearPastSessions();
       start_time = Date.now();
       (function drawFrameRecord() {
         playback_time = Date.now() - start_time;
@@ -292,7 +299,7 @@ $(document).ready(function() {
         window.requestAnimationFrame(drawFrameRecord, canvas);
       }());//end drawFrameRecord
     }
-  }
+  }//end play
 
   // Function to draw every tracked object on the canvas
   function drawTrackedObjects(context, mode){
@@ -301,7 +308,10 @@ $(document).ready(function() {
     for (var i=0; i<trackedObjs.length; i++) {
       var obj = trackedObjs[i];
       var marker = obj.marker;
-
+      // hide the gaze marker on 'Record'
+      if (mode === 'record' && obj.constructor.name === 'GazeObject') {
+        continue;
+      }
       context.rotate(marker.rotation);
       context.scale(marker.scaleX, marker.scaleY);
       context.lineWidth = marker.lineWidth;
@@ -327,6 +337,38 @@ $(document).ready(function() {
         session_data.forEach(function(o) {
           o['time'] = o['time'] - gaze_start_time;
         });
+      }
+    });
+  }
+
+  // returns the index of the closest MarkerObject in trackedObjs
+  function findClosestObject() {
+    var gaze_obj = trackedObjs[0];
+    var closest_distance_to_gaze = 100000;
+    var closest_object_index = 0;   
+    for (var i=0; i<trackedObjs.length; i++) {
+      var obj = trackedObjs[i];
+      if (obj !== gaze_obj){
+        obj.marker.color = 'blue';
+        var a = gaze_obj.marker.x - obj.marker.x;
+        var b = gaze_obj.marker.y - obj.marker.y;
+        var c = Math.sqrt( a*a + b*b );
+        if (c < closest_distance_to_gaze && c <= window.PROXIMITY_THRESHOLD) {
+          closest_distance_to_gaze = c;
+          closest_object_index = i;
+        }
+      }
+    }
+    return closest_object_index;
+  }
+
+  // clear all recorded sessions in memory
+  function clearPastSessions(){
+    trackedObjs.forEach(function(obj) {
+      obj.session_coords.length = 0;
+      if (obj.constructor.name === 'GazeObject') {
+        obj.marker.x = 0;
+        obj.marker.y = 0;
       }
     });
   }
@@ -372,10 +414,10 @@ $(document).ready(function() {
   function CircleObject(current_coords, session_coords, visible, stream) {
     MarkerObject.call(this, current_coords, session_coords, visible, stream);
     if (current_coords) {
-      this.marker =  new Ball(current_coords.x, current_coords.y, 20, 'blue', 'blue', 5);
+      this.marker =  new Ball(current_coords.x, current_coords.y);
     }
     else {
-      this.marker =  new Ball(0, 0, 20, 'blue', 'blue', 5);
+      this.marker =  new Ball(0, 0);
     }
     
   }
@@ -391,7 +433,7 @@ $(document).ready(function() {
     // Ay = rsin(ts) + center
     var parentWidth=jQuery(canvas).parent().width();
     var canvasWidth=context.canvas.width = parentWidth;
-    var canvasHeight=context.canvas.height= 500;
+    var canvasHeight=context.canvas.height= 700;
     var centerX = canvasWidth/2;
     var centerY = canvasHeight/2;
     var rotationRadius=200;
@@ -410,10 +452,10 @@ $(document).ready(function() {
   function CircleObject2(current_coords, session_coords, visible, stream) {
     MarkerObject.call(this, current_coords, session_coords, visible, stream);
     if (current_coords) {
-      this.marker = new Ball(current_coords.x, current_coords.y, 20, 'yellow', 'yellow', 5);
+      this.marker = new Ball(current_coords.x, current_coords.y);
     }
     else {
-      this.marker = new Ball(0, 0, 20, 'yellow', 'yellow', 5);
+      this.marker = new Ball(0, 0);
     }
     
   }
@@ -429,7 +471,7 @@ $(document).ready(function() {
     // Ay = rsin(ts) + center
     var parentWidth=jQuery(canvas).parent().width();
     var canvasWidth=context.canvas.width = parentWidth;
-    var canvasHeight=context.canvas.height= 500;
+    var canvasHeight=context.canvas.height= 700;
     var centerX = canvasWidth/2;
     var centerY = canvasHeight/2;
     var rotationRadius=200;
@@ -448,10 +490,10 @@ $(document).ready(function() {
   function CircleObject3(current_coords, session_coords, visible, stream) {
     MarkerObject.call(this, current_coords, session_coords, visible, stream);
     if (current_coords) {
-      this.marker = new Ball(current_coords.x, current_coords.y, 20, 'green', 'green', 5);
+      this.marker = new Ball(current_coords.x, current_coords.y);
     }
     else {
-      this.marker = new Ball(0, 0, 20, 'green', 'green', 5);
+      this.marker = new Ball(-100, -100);
     }
     
   }
@@ -467,7 +509,7 @@ $(document).ready(function() {
     // Ay = rsin(ts) + center
     var parentWidth=jQuery(canvas).parent().width();
     var canvasWidth=context.canvas.width = parentWidth;
-    var canvasHeight=context.canvas.height= 500;
+    var canvasHeight=context.canvas.height= 700;
     var centerX = canvasWidth/2;
     var centerY = canvasHeight/2;
     var rotationRadius = 150;
@@ -609,7 +651,7 @@ $(document).ready(function() {
     var canvasWidth=context.canvas.width = parentWidth;
 
     while (degrees < (Math.PI*90)) {
-      var canvasHeight=context.canvas.height= 500;
+      var canvasHeight=context.canvas.height= 700;
       centerX = canvasWidth/2;
       centerY = canvasHeight/2;
       Angle = degrees * (Math.PI / 180);
