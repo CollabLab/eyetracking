@@ -65,34 +65,31 @@ h1 {
 	border-left: 50px solid #a237b7 !important;
 }
 
+#header {
+	/*display: inline-block;*/
+	list-style: none;
+}
 
-#controls {
-	text-align: center;
-	padding-left: 20px;
-	width: 50%;
+.header-item {
 	display: inline-block;
+	width: 33%;
+	vertical-align: top;
+	text-align: center;
 }
 
 h3 {
 	text-decoration: underline;
 }
 
-#objects {
-	float: right;
-	width: 50%;
-	display: inline-block;
-	text-align: center;
-}
-
-ul {
+#objects ul {
 	padding-left: 0;
 }
 
-li {
+#objects li {
 	display: inline-block;
 }
 
-#dropdown {
+.dropdown {
 	display: inline-block;
 }
 

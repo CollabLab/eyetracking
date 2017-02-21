@@ -25,46 +25,61 @@
 <body>
     <h1>Eyetracking Demo</h1>
 
-    <div id="controls"> 
-        <h3>Controls</h3>
-        <div id="stop" value="Stop"></div>
-        <div id="play" value="Play"></div>
-        <div id="record" value="Record"></div>
-   
-        <!-- <div class="dropdown">
-            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Animation
-            <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-                <li><a href="#" data-value="animation1">Animation 1</a></li>
-                <li><a href="#" data-value="animation2">Animation 2</a></li>
-            </ul>
-        </div> -->
-        <br>
-        <!-- <button class="btn btn-default" id="btn-test-front">Test: send data from front</button>
-        <button class="btn btn-default" id="btn-test-back">Test: get data from back</button> -->
-    </div>
+    <ul id="header">
+        <li class="header-item">
+            <div id="controls"> 
+                <h3>Controls</h3>
+                <div id="stop" value="Stop"></div>
+                <div id="play" value="Play"></div>
+                <div id="record" value="Record"></div>
+            
+                <br>
+                <button class="btn btn-default" id="btn-test-front">Test: send data from front</button>
+                <button class="btn btn-default" id="btn-test-back">Test: get data from back</button>
+            </div>
+        </li>
 
-    <div id="objects">
-        <h3>Objects to Add</h3>
-        <ul>
-            <li> 
-                <p>Circle 1</p>
-                <input type="checkbox" checked data-toggle="toggle" id='toggle-circle' class='toggle'>
-            </li>
-            <li>
-                <p>Circle 2</p>
-                <input type="checkbox" checked data-toggle="toggle" id='toggle-circle2' class='toggle'>
-            </li>
-            <li>
-                <p>Circle 3</p>
-                <input type="checkbox" checked data-toggle="toggle" id='toggle-circle3' class='toggle'>
-            </li>
-        </ul>       
-    </div>
+        <li class="header-item">
+            <div id="objects">
+                <h3>Objects to Add</h3>
+                <ul>
+                    <li> 
+                        <p>Circle 1</p>
+                        <input type="checkbox" checked data-toggle="toggle" id='toggle-circle' class='toggle'>
+                    </li>
+                    <li>
+                        <p>Circle 2</p>
+                        <input type="checkbox" checked data-toggle="toggle" id='toggle-circle2' class='toggle'>
+                    </li>
+                    <li>
+                        <p>Circle 3</p>
+                        <input type="checkbox" checked data-toggle="toggle" id='toggle-circle3' class='toggle'>
+                    </li>
+                </ul>       
+            </div>
+        </li>
+        
+        <li class="header-item">
+            <div id="algorithims">
+                <h3>Algorithims</h3>
 
-    <!-- use for jquery animation -->
-    <!-- <div id="ball"></div>   -->
+                <div class="dropdown">
+                  <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Select an algorithim
+                  <span class="caret"></span></button>
+                  <ul class="dropdown-menu">
+                    <li><a data-algorithim-type="none" href="#">None</a></li>
+                    <li><a data-algorithim-type="algorithim1" href="#">Algorithim 1</a></li>
+                    <li><a data-algorithim-type="algorithim2" href="#">Algorithim 2</a></li>
+                  </ul>
+                </div>
+            </div>
+        </li>
+
+    </ul>
+
+    
+
+
 
     <!-- HTML5 Canvas -->
     <canvas id="canvas" height="500" width="750"></canvas>

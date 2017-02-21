@@ -12,6 +12,7 @@ $(document).ready(function() {
   trackedObjs.push(eyetribe);
   var HIGHLIGHTED = '#d6ff51'
   window.PROXIMITY_THRESHOLD = 150;
+  var algorithimType = 'none';
 
 
   /* -----------------------------------------------------------------------------------------------------------------------------------
@@ -65,8 +66,8 @@ $(document).ready(function() {
     catch (err) {
       console.log(err, msg);
     }
-
   });
+
 
   $('button#btn-test-front').click(function(event) {
     socket.emit('click_test_front', {data: 'test data from frontend'});
@@ -145,12 +146,6 @@ $(document).ready(function() {
     console.log('trackedObjs', trackedObjs);
   });
 
-  // dropdown
-  $(".dropdown-menu li a").click(function(){
-    $(this).parents(".dropdown").find('.btn').html($(this).text() + ' <span class="caret"></span>');
-    $(this).parents(".dropdown").find('.btn').val($(this).data('value'));
-  });
-
   // toggle controls for adding / removing objects
   $(".toggle").prop('checked', false).change();
 
@@ -191,6 +186,13 @@ $(document).ready(function() {
         }
       }
     }
+  });
+
+  // dropdown
+  $(".dropdown-menu li a").click(function(){
+    algorithimType = $(this).data('algorithimType');
+    $(this).parents(".dropdown").find('.btn').html($(this).text() + ' <span class="caret"></span>');
+    $(this).parents(".dropdown").find('.btn').val($(this).data('value'));
   });
 
   /** -----------------------------------------------------------------------------------------------------------------------------------
