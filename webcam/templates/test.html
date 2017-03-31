@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta content="stuff, to, help, search, engines, not" name="keywords">
+<meta content="What this page is about." name="description">
+<meta content="Display Webcam Stream" name="title">
+<title>Display Webcam Stream</title>
+
+<style>
+#container {
+    margin: 0px auto;
+    width: 500px;
+    height: 375px;
+    border: 10px #333 solid;
+}
+#videoElement {
+    width: 500px;
+    height: 375px;
+    background-color: #666;
+}
+</style>
+</head>
+
+<body>
+<div id="container">
+    <video autoplay="true" id="videoElement">
+
+    </video>
+</div>
+<script>
+// get devices
+navigator.mediaDevices.enumerateDevices()
+  .then(function(devices) {
+    console.log(devices);
+  //   devices.forEach(function(device) {
+  //     console.log(device.kind + ": " + device.label +
+  //       " id = " + device.deviceId);
+  //   });
+  })
+  .catch(function(err) {
+    console.log(err.name + ": " + error.message);
+  });
+
+var errorCallback = function(e) {
+  console.log('Reeeejected!', e);
+};
+// ------------------------------
+
+if(getBrowser() == "Chrome") {
+  var constraints = {"audio": false, "video": { "mandatory": { "minWidth": 320, "maxWidth": 320, "minHeight": 240,"maxHeight": 240 }, "optional": [] } };
+} else if(getBrowser() == "Firefox") {
+  var constraints = {audio: true,video: { width: { min: 320, ideal: 320, max: 1280 }, height: { min: 240, ideal: 240, max: 720 }}};
+}
+
+function onBtnRecordClicked (){
+   if (typeof MediaRecorder === 'undefined' || !navigator.getUserMedia) {
+      alert('Sorry! This demo requires Firefox 30 and up or Chrome 47 and up.');
+    }else {
+      navigator.getUserMedia(constraints, startRecording, errorCallback);
+    }
+}
+
+function startRecording(stream) {
+ log('Starting...');
+ mediaRecorder = new MediaRecorder(stream);
+
+ mediaRecorder.start();
+
+ var url = window.URL || window.webkitURL;
+ videoElement.src = url ? url.createObjectURL(stream) : stream;
+ videoElement.play();
+
+ mediaRecorder.ondataavailable = function(e) {
+     //log('Data available...');
+     //console.log(e.data);
+     //console.log(e);
+
+     chunks.push(e.data);
+     };
+
+     mediaRecorder.onerror = function(e){
+         log('Error: ' + e);
+         console.log('Error: ', e);
+     };
+
+
+     mediaRecorder.onstart = function(){
+         log('Started, state = ' + mediaRecorder.state);
+     };
+
+     mediaRecorder.onstop = function(){
+         log('Stopped, state = ' + mediaRecorder.state);
+
+         var blob = new Blob(chunks, {type: "video/webm"});
+         chunks = [];
+
+         var videoURL = window.URL.createObjectURL(blob);
+
+         downloadLink.href = videoURL;
+         videoElement.src = videoURL;
+         downloadLink.innerHTML = 'Download video file';
+
+         var rand = Math.floor((Math.random() * 10000000));
+         var name = "video_"+rand+".webm" ;
+
+         downloadLink.setAttribute( "download", name);
+         downloadLink.setAttribute( "name", name);
+
+     };
+
+     mediaRecorder.onwarning = function(e){
+         log('Warning: ' + e);
+     };
+}
+
+
+</script>
+</body>
+</html>
