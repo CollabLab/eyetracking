@@ -8,7 +8,7 @@
 // --- way to see connected devices ---
 navigator.mediaDevices.enumerateDevices()
   .then(function(devices) {
-    console.log(devices);
+    console.log("devices:", devices);
   //   devices.forEach(function(device) {
   //     console.log(device.kind + ": " + device.label +
   //       " id = " + device.deviceId);
@@ -28,9 +28,9 @@ navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia 
 
 
 if(getBrowser() == "Chrome"){
-	var constraints = {"audio": false, "video": {  "mandatory": {  "minWidth": 640,  "maxWidth": 640, "minHeight": 480,"maxHeight": 480 }, "optional": [] } };//Chrome
+	var constraints = {"audio": false, "video": {  "mandatory": {  "minWidth": 320,  "maxWidth": 320, "minHeight": 240,"maxHeight": 240 }, "optional": [] } };//Chrome
 }else if(getBrowser() == "Firefox"){
-	var constraints = {audio: false,video: {  width: { min: 640, ideal: 640, max: 640 },  height: { min: 480, ideal: 480, max: 480 }}}; //Firefox
+	var constraints = {audio: false,video: {  width: { min: 320, ideal: 320, max: 320 },  height: { min: 240, ideal: 240, max: 240 }}}; //Firefox
 }
 
 var recBtn = document.querySelector('button#rec');
@@ -182,7 +182,6 @@ function onPauseResumeClicked(){
 function log(message){
 	dataElement.innerHTML = dataElement.innerHTML+'<br>'+message ;
 }
-
 
 
 //browser ID

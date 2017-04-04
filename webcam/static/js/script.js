@@ -130,7 +130,7 @@ $(document).ready(function() {
   });
 
   // Stop
-  $('#stop').click(function() {
+  $('#stop-ball').click(function() {
     currentlyPlaying = false;
   	if (recordArmed) {
   		recordArmed = false;  
@@ -239,27 +239,30 @@ $(document).ready(function() {
         for (var i=0; i<trackedObjs.length; i++) {
           var obj = trackedObjs[i];
           var session = obj.session_coords;
-          var coords = undefined;
-          var recording_time = session[session.length-1].time;
-          // start playback from the beginnning when reach the end
-          if (playback_time > recording_time) {
-            start_time = Date.now();
-            break;
-          }
-          // loop thru session_coords
-          for (var j=0; j<session.length; j++) {
-            var s = session[j];
-            if (playback_time < s.time) {
-              coords = s;
+          if (session.length > 0) {
+            var coords = undefined;
+            var recording_time = session[session.length-1].time;
+            // start playback from the beginnning when reach the end
+            if (playback_time > recording_time) {
+              start_time = Date.now();
               break;
             }
+            // loop thru session_coords
+            for (var j=0; j<session.length; j++) {
+              var s = session[j];
+              if (playback_time < s.time) {
+                coords = s;
+                break;
+              }
+            }
+            try {
+              obj.marker.x = coords.x;
+              obj.marker.y = coords.y;
+            } catch (error) {
+              console.log(error);
+            }
           }
-          try {
-            obj.marker.x = coords.x;
-            obj.marker.y = coords.y;
-          } catch (error) {
-            console.log(error);
-          }
+          
         };
         // highlight the closest object
         closest_object_index = findClosestObject();
@@ -335,10 +338,12 @@ $(document).ready(function() {
     trackedObjs.forEach(function(obj){
       if (obj.constructor.name === 'GazeObject'){
         var session_data = obj['session_coords'];
-        var gaze_start_time = session_data[0]['time'];
-        session_data.forEach(function(o) {
-          o['time'] = o['time'] - gaze_start_time;
-        });
+        if (session_data.length > 0) {
+          var gaze_start_time = session_data[0]['time'];
+          session_data.forEach(function(o) {
+            o['time'] = o['time'] - gaze_start_time;
+          });
+        }
       }
     });
   }
